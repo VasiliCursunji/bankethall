@@ -41,10 +41,10 @@ class Comment(models.Model):
 
 class Event(models.Model):
     EVENT_TYPES = (
-        ('1', 'Birthday'),
-        ('2', 'Wedding'),
-        ('3', 'Сhristening'),
-        ('4', 'Other'),
+        ('BIRTHDAY', 'Birthday'),
+        ('WEDDING', 'Wedding'),
+        ('CHRISTENING', 'Сhristening'),
+        ('OTHER', 'Other'),
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)

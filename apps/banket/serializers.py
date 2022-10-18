@@ -42,6 +42,9 @@ class CommentSerializer(serializers.ModelSerializer):
             'text'
         )
 
+    extra_kwargs = {
+        'user': {'read_only': True}
+    }
 
 class OrderedDishSerializer(serializers.ModelSerializer):
     dish = DishSerializer()

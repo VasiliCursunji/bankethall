@@ -22,6 +22,7 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter,)
     filter_fields = (
+        'event_type',
         'is_passed',
     )
     search_fields = (
@@ -37,8 +38,10 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+        serializer = self.get_serializer()
         if instance.user == self.request.user:
-            return Response(data=instance, status=status.HTTP_200_OK)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        return Response(data='Вы не можете просматривать чужие мероприятия',status=status.HTTP_403_FORBIDDEN)
 
     @action(methods=['GET'], detail=False, serializer_class=EventSerializer, url_path='my-events')
     def my_events(self, request, *args, **kwargs):
@@ -80,6 +83,10 @@ class CommentViewSet(
     authentication_classes = (JWTAuthentication,)
     serializer_class = CommentSerializer
     queryset = Comment.objects.all()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(user=user)
 
 
 class OrderedDishViewSet(
