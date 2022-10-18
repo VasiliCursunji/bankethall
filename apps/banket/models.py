@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -39,6 +40,12 @@ class Comment(models.Model):
     text = models.TextField()
 
 
+class AdditionalOptions(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(default='')
+    price = models.FloatField(validators=[MinValueValidator(0.0)])
+
+
 class Event(models.Model):
     EVENT_TYPES = (
         ('BIRTHDAY', 'Birthday'),
@@ -54,6 +61,17 @@ class Event(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_planned = models.DateField(null=True)
     is_passed = models.BooleanField(default=False)
+    add_options = models.ManyToManyField(AdditionalOptions)
+
+    def __str__(self):
+        return f'{self.user.email} - {self.event_type}'
+
+    @property
+    def get_options_price(self):
+        options_price = self.add_options.all().aggregate(options_price=Sum('price'))['options_price']
+        if options_price:
+            return options_price
+        return 0.0
 
 
 class OrderedDish(models.Model):
@@ -61,6 +79,9 @@ class OrderedDish(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField(default=0)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f''
 
     @property
     def calculate_price(self):

@@ -1,11 +1,31 @@
 from rest_framework import serializers
 
-from apps.banket.models import Event, Dish, Comment, OrderedDish, Hole, Image, Guest, Seat
+from apps.banket.models import Event, Dish, Comment, OrderedDish, Hole, Image, Guest, Seat, AdditionalOptions
 from apps.users.serializers import UserSerializer
 
 
+class AdditionalOptionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdditionalOptions
+        fields = '__all__'
+
+
 class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = (
+            'id',
+            'hole',
+            'description',
+            'event_type',
+            'date_planned',
+            'is_passed',
+        )
+
+
+class EventDetailSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    add_options = AdditionalOptionsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Event
@@ -15,6 +35,7 @@ class EventSerializer(serializers.ModelSerializer):
             'hole',
             'description',
             'event_type',
+            'add_options',
             'date_created',
             'date_planned',
             'is_passed',
@@ -22,13 +43,28 @@ class EventSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'user': {'read_only': True},
             'date_created': {'read_only': True},
+            'add_options': {'read_only': True},
         }
+
+
+class AdditionalOptionsChangeSerializer(serializers.ModelSerializer):
+    add_options = serializers.PrimaryKeyRelatedField(
+        queryset=AdditionalOptions.objects.all(),
+        required=True,
+        many=True,
+    )
+
+    class Meta:
+        model = Event
+        fields = (
+            'add_options',
+        )
 
 
 class DishSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dish
-        fields = ('__all__')
+        fields = '__all__'
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -45,6 +81,7 @@ class CommentSerializer(serializers.ModelSerializer):
     extra_kwargs = {
         'user': {'read_only': True}
     }
+
 
 class OrderedDishSerializer(serializers.ModelSerializer):
     dish = DishSerializer()
