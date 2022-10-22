@@ -151,3 +151,8 @@ class SeatChangeSerializer(serializers.ModelSerializer):
         fields = (
             'seat_id',
         )
+
+
+class InvitationSerializer(serializers.Serializer):
+    man_fullname = serializers.CharField(max_length=255, required=True)
+    women_fullname = serializers.CharField(max_length=255, required=True)

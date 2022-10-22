@@ -1,5 +1,8 @@
+from django.core.mail import EmailMultiAlternatives
 from django.db.models import Sum, F
+from django.template.loader import get_template
 from django_filters.rest_framework import DjangoFilterBackend
+from django.template import Context
 from rest_framework import viewsets, status, views
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, ListModelMixin
 from rest_framework.response import Response
@@ -9,11 +12,14 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.serializers import Serializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from apps.banket.helpers import get_weekday_name
 from apps.banket.models import Event, Dish, Comment, OrderedDish, Hole, Guest, Seat, AdditionalOptions
 from apps.banket.permissions import IsOwnerOrReadOnly
 from apps.banket.serializers import EventSerializer, DishSerializer, CommentSerializer, OrderedDishSerializer, \
     HoleSerializer, GuestSerializer, SeatChangeSerializer, AdditionalOptionsSerializer, \
-    AdditionalOptionsChangeSerializer, EventDetailSerializer
+    AdditionalOptionsChangeSerializer, EventDetailSerializer, InvitationSerializer
+
+from config.settings import EMAIL_HOST_USER
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -87,6 +93,44 @@ class EventViewSet(viewsets.ModelViewSet):
     def all_options(self, request, *args, **kwargs):
         options = AdditionalOptions.objects.values()
         return Response(data=options, status=status.HTTP_200_OK)
+
+    @action(methods=['POST'], detail=True, serializer_class=InvitationSerializer, url_path='send-invitations')
+    def send_invitations(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.data
+
+        wedding = {
+            'women': {
+                'name': data['women_fullname'].split()[0],
+                'fullname': data['women_fullname']
+            },
+            'man': {
+                'name': data['man_fullname'].split()[0],
+                'fullname': data['man_fullname']
+            },
+            'label': data['women_fullname'][0] + '&' + data['man_fullname'][0],
+            'day': get_weekday_name(instance.date_planned.weekday()),
+            'date': instance.date_planned.strftime("%m/%d"),
+            'year': instance.date_planned.strftime("%Y")
+        }
+
+        htmly = get_template('Save the date.html')
+        d = {'wedding': wedding}
+        html_content = htmly.render(d)
+
+        email_guests = list(Guest.objects.filter(event=instance).values_list('email'))
+        email_guests = [i[0] for i in email_guests]
+
+        subject, from_email, to = 'Wedding invitation', EMAIL_HOST_USER, email_guests
+        text_content = 'You are invited to our weeding!'
+        mail = EmailMultiAlternatives(subject, text_content, from_email, to)
+
+        mail.attach_alternative(html_content, "text/html")
+        mail.send()
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class DishViewSet(viewsets.GenericViewSet):
