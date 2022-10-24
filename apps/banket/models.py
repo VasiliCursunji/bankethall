@@ -20,6 +20,9 @@ class Dish(models.Model):
     description = models.TextField(default='Dish')
     dish_type = models.CharField(max_length=255, choices=DISH_TYPES)
 
+    def __str__(self):
+        return f'{self.name}'
+
 
 class Hole(models.Model):
     name = models.CharField(max_length=255)
@@ -27,23 +30,32 @@ class Hole(models.Model):
     number_of_seats = models.PositiveIntegerField()
 
     def __str__(self):
-        return self.name
+        return f'{self.name}'
 
 
 class Image(models.Model):
     hole = models.ForeignKey(Hole, related_name='images', on_delete=models.CASCADE, null=True)
     image = models.ImageField(upload_to='media/')
 
+    def __str__(self):
+        return f'{self.hole.name} - {self.image}'
+
 
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.TextField()
+
+    def __str__(self):
+        return f'{self.user.username}'
 
 
 class AdditionalOptions(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(default='')
     price = models.FloatField(validators=[MinValueValidator(0.0)])
+
+    def __str__(self):
+        return f'{self.name} - {self.price} lei'
 
 
 class Event(models.Model):
@@ -64,7 +76,7 @@ class Event(models.Model):
     add_options = models.ManyToManyField(AdditionalOptions)
 
     def __str__(self):
-        return f'{self.user.email} - {self.event_type}'
+        return f'{self.user.username} - {self.event_type}'
 
     @property
     def get_options_price(self):
@@ -81,7 +93,7 @@ class OrderedDish(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f''
+        return f'{self.dish.name}'
 
     @property
     def calculate_price(self):
@@ -107,6 +119,9 @@ class Guest(models.Model):
     email = models.EmailField()
     seat = models.ForeignKey(Seat, related_name='seat', on_delete=models.CASCADE, null=True)
     event = models.ForeignKey(Event, related_name='event', on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name}'
 
     def seat_free(self):
         self.seat = None
