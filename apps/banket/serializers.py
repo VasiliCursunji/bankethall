@@ -1,3 +1,4 @@
+from django.db.models import Sum, F
 from rest_framework import serializers
 
 from apps.banket.models import Event, Dish, Comment, OrderedDish, Hole, Image, Guest, Seat, AdditionalOptions
@@ -11,16 +12,33 @@ class AdditionalOptionsSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    guest_count = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+
     class Meta:
         model = Event
         fields = (
             'id',
-            'hole',
-            'description',
             'event_type',
+            'guest_count',
             'date_planned',
+            'total_price',
             'is_passed',
         )
+
+    def get_guest_count(self, obj):
+        return Guest.objects.filter(event=obj).count()
+
+    def get_total_price(self, obj):
+        dishes_price = OrderedDish.objects.filter(
+            event=obj
+        ).aggregate(
+            total=Sum(F('amount') * F('dish__price'))
+        )['total']
+        options_price = obj.get_options_price
+        if not dishes_price:
+            return options_price
+        return dishes_price + options_price
 
 
 class EventDetailSerializer(serializers.ModelSerializer):
