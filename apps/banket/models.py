@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Sum
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
 
@@ -69,7 +69,7 @@ class Event(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     hole = models.ForeignKey(Hole, on_delete=models.CASCADE, null=True)
     description = models.TextField(default='My Event')
-    event_type = models.CharField(max_length=255, choices=EVENT_TYPES)
+    event_type = models.CharField(max_length=255, choices=EVENT_TYPES, default='OTHER')
     date_created = models.DateTimeField(auto_now_add=True)
     date_planned = models.DateField(null=True)
     is_passed = models.BooleanField(default=False)
@@ -107,8 +107,15 @@ class Seat(models.Model):
     description = models.TextField(default='')
     is_engaged = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.number
+
     def take_the_place(self):
         self.is_engaged = True
+        self.save()
+
+    def make_free(self):
+        self.is_engaged = False
         self.save()
 
 
@@ -116,14 +123,15 @@ class Guest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField()
-    seat = models.ForeignKey(Seat, related_name='seat', on_delete=models.CASCADE, null=True)
+    email = models.EmailField(blank=True, null=True)
+    seat = models.OneToOneField(Seat, related_name='seat', on_delete=models.CASCADE, null=True)
     event = models.ForeignKey(Event, related_name='event', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
 
     def seat_free(self):
+        self.seat.make_free()
         self.seat = None
         self.save()
 
@@ -137,3 +145,8 @@ def create_seats(sender, instance, created, **kwargs):
                 number=i
             ) for i in range(1, instance.hole.number_of_seats + 1)]
         )
+
+
+@receiver(pre_delete, sender=Guest)
+def delete_seat(sender, instance, *args, **kwargs):
+    instance.seat.make_free()

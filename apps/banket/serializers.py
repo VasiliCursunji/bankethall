@@ -12,6 +12,19 @@ class AdditionalOptionsSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = (
+            'id',
+            'hole',
+            'description',
+            'event_type',
+            'date_planned',
+            'is_passed'
+        )
+
+
+class EventListSerializer(serializers.ModelSerializer):
     guest_count = serializers.SerializerMethodField()
     total_price = serializers.SerializerMethodField()
 
@@ -140,7 +153,7 @@ class HoleSerializer(serializers.ModelSerializer):
 
 class GuestSerializer(serializers.ModelSerializer):
     event = serializers.PrimaryKeyRelatedField(queryset=Event.objects.all(), write_only=True)
-    seat = serializers.PrimaryKeyRelatedField(queryset=Seat.objects.all())
+    seat = serializers.CharField(required=True)
     user = UserSerializer(read_only=True)
 
     class Meta:
@@ -159,6 +172,17 @@ class GuestSerializer(serializers.ModelSerializer):
             'user': {'read_only': True},
             'event': {'write_only': True},
         }
+
+
+class SeatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Seat
+        fields = (
+            'id',
+            'number',
+            'description',
+            'is_engaged',
+        )
 
 
 class SeatChangeSerializer(serializers.ModelSerializer):

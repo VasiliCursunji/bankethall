@@ -17,7 +17,7 @@ from apps.banket.models import Event, Dish, Comment, OrderedDish, Hole, Guest, S
 from apps.banket.permissions import IsOwnerOrReadOnly
 from apps.banket.serializers import EventSerializer, DishSerializer, CommentSerializer, OrderedDishSerializer, \
     HoleSerializer, GuestSerializer, SeatChangeSerializer, AdditionalOptionsSerializer, \
-    AdditionalOptionsChangeSerializer, EventDetailSerializer, InvitationSerializer
+    AdditionalOptionsChangeSerializer, EventDetailSerializer, InvitationSerializer, EventListSerializer, SeatSerializer
 
 from config.settings import EMAIL_HOST_USER
 
@@ -41,7 +41,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        serializer.save(user=user)
+        serializer.save(user=user, hole_id=1)
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -50,10 +50,22 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response(data=serializer.data, status=status.HTTP_200_OK)
         return Response(data='Вы не можете просматривать чужие мероприятия', status=status.HTTP_403_FORBIDDEN)
 
-    @action(methods=['GET'], detail=False, serializer_class=EventSerializer, url_path='my-events')
+    @action(methods=['GET'], detail=False, serializer_class=EventListSerializer, url_path='my-events')
     def my_events(self, request, *args, **kwargs):
         queryset = self.queryset.filter(user=self.request.user)
         serializer = self.get_serializer(queryset, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['GET'], detail=True, serializer_class=Serializer, url_path='event-seats')
+    def event_seats(self, request, *args, **kwargs):
+        queryset = Seat.objects.filter(event_id=kwargs['pk']).order_by('id')
+        serializer = SeatSerializer(queryset, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['GET'], detail=True, serializer_class=Serializer, url_path='event-guests')
+    def event_guests(self, request, *args, **kwargs):
+        queryset = Guest.objects.filter(event_id=kwargs['pk']).order_by('id')
+        serializer = GuestSerializer(queryset, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True, serializer_class=Serializer, url_path='total-price')
@@ -194,6 +206,7 @@ class GuestViewSet(
     viewsets.GenericViewSet,
     ListModelMixin,
     CreateModelMixin,
+    DestroyModelMixin,
 ):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly,)
     authentication_classes = (JWTAuthentication,)
@@ -211,6 +224,7 @@ class GuestViewSet(
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
+        instance.seat.make_free()
         new_seat = Seat.objects.get(id=self.request.data['seat_id'])
         serializer.save(seat_id=new_seat)
 
