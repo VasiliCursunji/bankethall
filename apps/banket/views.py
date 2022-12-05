@@ -224,10 +224,10 @@ class GuestViewSet(
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.seat.make_free()
-        new_seat = Seat.objects.get(id=self.request.data['seat_id'])
+        new_seat = Seat.objects.filter(number=self.request.data['seat_number'],
+                                       event_id=self.request.data['event_id']).first()
         serializer.save(seat_id=new_seat)
-
+        new_seat.take_the_place()
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True, serializer_class=Serializer, url_path='make-seat-free')

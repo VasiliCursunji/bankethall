@@ -186,12 +186,14 @@ class SeatSerializer(serializers.ModelSerializer):
 
 
 class SeatChangeSerializer(serializers.ModelSerializer):
-    seat_id = serializers.IntegerField(required=True)
+    seat_number = serializers.CharField(required=True)
+    event_id = serializers.CharField(required=True)
 
     class Meta:
         model = Guest
         fields = (
-            'seat_id',
+            'seat_number',
+            'event_id'
         )
 
 
