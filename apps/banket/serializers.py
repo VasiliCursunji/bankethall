@@ -115,8 +115,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class OrderedDishSerializer(serializers.ModelSerializer):
-    dish = DishSerializer()
-    event = EventSerializer()
+    dish = serializers.PrimaryKeyRelatedField(queryset=Dish.objects.all(), many=False)
+    event = serializers.PrimaryKeyRelatedField(queryset=Event.objects.all(), many=False)
 
     class Meta:
         model = OrderedDish
@@ -125,6 +125,18 @@ class OrderedDishSerializer(serializers.ModelSerializer):
             'dish',
             'amount',
             'event',
+        )
+
+
+class MyOrderedDishesListSerializer(serializers.ModelSerializer):
+    dish = DishSerializer()
+
+    class Meta:
+        model = OrderedDish
+        fields = (
+            'id',
+            'dish',
+            'amount',
         )
 
 

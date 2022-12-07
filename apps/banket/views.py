@@ -17,7 +17,8 @@ from apps.banket.models import Event, Dish, Comment, OrderedDish, Hole, Guest, S
 from apps.banket.permissions import IsOwnerOrReadOnly
 from apps.banket.serializers import EventSerializer, DishSerializer, CommentSerializer, OrderedDishSerializer, \
     HoleSerializer, GuestSerializer, SeatChangeSerializer, AdditionalOptionsSerializer, \
-    AdditionalOptionsChangeSerializer, EventDetailSerializer, InvitationSerializer, EventListSerializer, SeatSerializer
+    AdditionalOptionsChangeSerializer, EventDetailSerializer, InvitationSerializer, EventListSerializer, SeatSerializer, \
+    MyOrderedDishesListSerializer
 
 from config.settings import EMAIL_HOST_USER
 
@@ -106,6 +107,12 @@ class EventViewSet(viewsets.ModelViewSet):
         options = AdditionalOptions.objects.values()
         return Response(data=options, status=status.HTTP_200_OK)
 
+    @action(methods=['GET'], detail=True, serializer_class=MyOrderedDishesListSerializer, url_path='my-ordered-dishes')
+    def my_ordered_dishes(self, request, *args, **kwargs):
+        queryset = OrderedDish.objects.filter(user=self.request.user, event_id=kwargs['pk'])
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
     @action(methods=['POST'], detail=True, serializer_class=InvitationSerializer, url_path='send-invitations')
     def send_invitations(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -185,11 +192,9 @@ class OrderedDishViewSet(
     serializer_class = OrderedDishSerializer
     queryset = OrderedDish.objects.all()
 
-    @action(methods=['GET'], detail=False, serializer_class=OrderedDishSerializer, url_path='my-ordered-dishes')
-    def my_ordered_dishes(self, request, *args, **kwargs):
-        queryset = self.queryset.filter(user=self.request.user)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(user=user)
 
 
 class HoleViewSet(
