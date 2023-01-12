@@ -1,5 +1,5 @@
 from django.contrib import admin
-from apps.banket.models import Event, Hole, Image, Dish, OrderedDish, Comment, Seat
+from apps.banket.models import Event, Hole, Image, Dish, OrderedDish, Comment, Seat, AdditionalOptions
 
 
 class ImageInline(admin.TabularInline):
@@ -34,4 +34,9 @@ class DishAdmin(admin.ModelAdmin):
 
 @admin.register(Seat)
 class SeatAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(AdditionalOptions)
+class AdditionalOptionsAdmin(admin.ModelAdmin):
     pass
